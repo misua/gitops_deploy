@@ -1,0 +1,68 @@
+image: alpine:latest
+
+stages:
+- test
+- build
+- release
+- deploy
+
+workflow:
+  rules:
+  - if: $CI_MERGE_REQUEST_ID
+  - if: $CI_COMMIT_BRANCH == "master"
+
+jar-build:
+  stage: build
+  script:
+  - git clone -b master https://'biss.dakk':'changedthis'@gitlab.com/biss.dakk/tenant-service.git
+  - sed -i 's/dev/staging/g' tenant-service/tenant-service-impl/pom.xml
+  - sed -i 's/localhost:5432/tenantservice:5432/g' tenant-service/tenant-service-impl/src/main/resources/application-staging.properties
+
+docker-build:
+  stage: build
+
+  before_script:
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+  - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+  rules:
+  - if: $CI_MERGE_REQUEST_ID
+
+docker-release:
+  stage: release
+  before_script:
+  - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+  - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+  - docker push "$CI_REGISTRY_IMAGE"
+  - docker tag "$CI_REGISTRY_IMAGE" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  rules:
+  - if: $CI_COMMIT_BRANCH == "master"
+
+kubernetes-deploy:
+  stage: deploy
+
+  before_script:
+
+  - git remote set-url origin https://${CI_USERNAME}:${CI_PUSH_TOKEN}@gitlab.com/biss.dakk/tenant-service.git
+  - git config --global user.email "biss.dakk@gmail.com"
+  - git config --global user.name "biss.dakk"
+  
+  script:
+  - export IMAGE_TAG="${CI_COMMIT_SHA}"
+  # Normally, we would take the output of the command below,
+  # and pipe it to kubectl to deploy the changes. However,
+  # for this demo, we'll just print out the manifests we'd deploy.
+  - mkdir -p manifests
+  - chmod 777 kubernetes.yaml.template.sh
+  - ./kubernetes.yaml.template.sh
+  - git checkout -B master
+  - git commit -am '[skip ci] DEV image update'
+  - git push origin master
+
+  rules:
+  - if: $CI_COMMIT_BRANCH == "master"
+
+
+
