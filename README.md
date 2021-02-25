@@ -1,9 +1,9 @@
 # gitops_deploy
 Tools
 
-*Using rancher fleet as continous deployment
-*Using gitlab for CI (gitlab-ci)
-*Using kustomize for changing the manifests
+* Using rancher fleet as continous deployment
+* Using gitlab for CI (gitlab-ci)
+* Using kustomize for changing the manifests
 
 * This assumes that tenant-service-impl & tenant-service-api where the code or changes are often made by developers
 * Manifests folder is where it writes the newly generated kubernetes manifests.
