@@ -8,5 +8,5 @@ commonLabels:
   app: myapp
 images:
 - name: myapp
-  newName: registry.gitlab.com/jkpl/kustomize-demo
+  newName: registry.gitlab.com/yourownrepo/kustomize-demo
   newTag: IMAGE_TAG
